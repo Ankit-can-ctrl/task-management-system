@@ -6,12 +6,14 @@ const {
   getMe,
 } = require("../controllers/authController");
 const { protect } = require("../middleware/authMiddleware");
+const { authLimiter } = require("../middleware/rateLimiter");
 const validate = require("../middleware/validate");
 
 const router = express.Router();
 
 router.post(
   "/register",
+  authLimiter,
   [
     body("name").trim().notEmpty().withMessage("Name is required"),
     body("email").isEmail().withMessage("Valid email is required"),
@@ -25,6 +27,7 @@ router.post(
 
 router.post(
   "/login",
+  authLimiter,
   [
     body("email").isEmail().withMessage("Valid email is required"),
     body("password").notEmpty().withMessage("Password is required"),

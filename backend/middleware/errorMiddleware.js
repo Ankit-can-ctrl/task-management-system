@@ -14,7 +14,7 @@ const errorMiddleware = (err, req, res, next) => {
     message = "Duplicate field value entered";
   }
 
-  if (process.env.NODE_ENV !== "production") {
+  if (process.env.NODE_ENV !== "production" && !err.isOperational) {
     console.error(err.stack);
   }
 
