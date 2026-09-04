@@ -5,26 +5,26 @@ describe("Auth API", () => {
   describe("POST /api/auth/register", () => {
     it("registers a new user and returns a token", async () => {
       const res = await request(app).post("/api/auth/register").send({
-        name: "Jane Doe",
-        email: "jane@example.com",
+        name: "Ankit",
+        email: "ankit@gmail.com",
         password: "secret123",
       });
 
       expect(res.status).toBe(201);
       expect(res.body.token).toBeDefined();
-      expect(res.body.email).toBe("jane@example.com");
+      expect(res.body.email).toBe("ankit@gmail.com");
     });
 
     it("rejects duplicate email", async () => {
       await request(app).post("/api/auth/register").send({
-        name: "Jane Doe",
-        email: "jane@example.com",
+        name: "Ankit",
+        email: "ankit@gmail.com",
         password: "secret123",
       });
 
       const res = await request(app).post("/api/auth/register").send({
-        name: "Jane Copy",
-        email: "jane@example.com",
+        name: "Ankit Kumar",
+        email: "ankit@gmail.com",
         password: "otherpass",
       });
 
@@ -34,8 +34,8 @@ describe("Auth API", () => {
 
     it("rejects invalid email", async () => {
       const res = await request(app).post("/api/auth/register").send({
-        name: "Jane Doe",
-        email: "not-an-email",
+        name: "Ankit",
+        email: "ankit@gmail",
         password: "secret123",
       });
 
@@ -47,15 +47,15 @@ describe("Auth API", () => {
   describe("POST /api/auth/login", () => {
     beforeEach(async () => {
       await request(app).post("/api/auth/register").send({
-        name: "Login User",
-        email: "login@example.com",
+        name: "Ankit",
+        email: "ankit@gmail.com",
         password: "secret123",
       });
     });
 
     it("logs in with valid credentials", async () => {
       const res = await request(app).post("/api/auth/login").send({
-        email: "login@example.com",
+        email: "ankit@gmail.com",
         password: "secret123",
       });
 
@@ -65,7 +65,7 @@ describe("Auth API", () => {
 
     it("rejects wrong password", async () => {
       const res = await request(app).post("/api/auth/login").send({
-        email: "login@example.com",
+        email: "ankit@gmail.com",
         password: "wrongpassword",
       });
 
@@ -76,8 +76,8 @@ describe("Auth API", () => {
   describe("GET /api/auth/me", () => {
     it("returns current user when authenticated", async () => {
       const register = await request(app).post("/api/auth/register").send({
-        name: "Me User",
-        email: "me@example.com",
+        name: "Ankit",
+        email: "ankit@gmail.com",
         password: "secret123",
       });
 
@@ -86,7 +86,7 @@ describe("Auth API", () => {
         .set("Authorization", `Bearer ${register.body.token}`);
 
       expect(res.status).toBe(200);
-      expect(res.body.email).toBe("me@example.com");
+      expect(res.body.email).toBe("ankit@gmail.com");
     });
 
     it("returns 401 without token", async () => {
