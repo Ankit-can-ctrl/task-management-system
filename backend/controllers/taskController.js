@@ -1,5 +1,4 @@
-const { validationResult } = require("express-validator");
-const Task = require("../models/Task");
+const Task = require("../models/Task");const { ALLOWED_SORT_FIELDS } = require("../utils/constants");
 
 // GET /api/tasks?search=&status=&priority=&page=&limit=&sortBy=&order=
 const getTasks = async (req, res) => {
@@ -14,7 +13,7 @@ const getTasks = async (req, res) => {
       order = "desc",
     } = req.query;
 
-    const query = { user: req.user._id }; // scope to logged-in user
+    const query = { user: req.user._id };
 
     if (search.trim()) query.title = { $regex: search.trim(), $options: "i" };
     if (status) query.status = status;
@@ -23,7 +22,9 @@ const getTasks = async (req, res) => {
     const pageNum = Math.max(parseInt(page, 10) || 1, 1);
     const limitNum = Math.min(Math.max(parseInt(limit, 10) || 10, 1), 100);
     const skip = (pageNum - 1) * limitNum;
-    const sortOptions = { [sortBy]: order === "asc" ? 1 : -1 };
+
+    const safeSortBy = ALLOWED_SORT_FIELDS.includes(sortBy) ? sortBy : "createdAt";
+    const sortOptions = { [safeSortBy]: order === "asc" ? 1 : -1 };
 
     const [tasks, totalCount] = await Promise.all([
       Task.find(query).sort(sortOptions).skip(skip).limit(limitNum),
@@ -78,10 +79,6 @@ const getTaskById = async (req, res) => {
 };
 
 const createTask = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty())
-    return res.status(400).json({ errors: errors.array() });
-
   try {
     const { title, description, status, priority, dueDate } = req.body;
     const task = await Task.create({
@@ -101,10 +98,6 @@ const createTask = async (req, res) => {
 };
 
 const updateTask = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty())
-    return res.status(400).json({ errors: errors.array() });
-
   try {
     // matches _id AND user, so no one can edit someone else's task
     const task = await Task.findOne({ _id: req.params.id, user: req.user._id });
