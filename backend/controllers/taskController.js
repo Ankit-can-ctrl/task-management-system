@@ -44,14 +44,8 @@ const getTasks = asyncHandler(async (req, res) => {
 });
 
 const getTaskStats = asyncHandler(async (req, res) => {
-  const userId = req.user._id;
-  const [total, pending, inProgress, completed] = await Promise.all([
-    Task.countDocuments({ user: userId }),
-    Task.countDocuments({ user: userId, status: "Pending" }),
-    Task.countDocuments({ user: userId, status: "In Progress" }),
-    Task.countDocuments({ user: userId, status: "Completed" }),
-  ]);
-  res.status(200).json({ total, pending, inProgress, completed });
+  const stats = await Task.getStatsForUser(req.user._id);
+  res.status(200).json(stats);
 });
 
 const getTaskById = asyncHandler(async (req, res) => {
