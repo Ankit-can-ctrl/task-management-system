@@ -11,18 +11,18 @@ const registerAndGetToken = async (name, email) => {
 };
 
 describe("Tasks API", () => {
-  let tokenA;
-  let tokenB;
+  let ankitToken;
+  let rahulToken;
   let taskId;
 
   beforeEach(async () => {
-    tokenA = await registerAndGetToken("User A", "usera@example.com");
-    tokenB = await registerAndGetToken("User B", "userb@example.com");
+    ankitToken = await registerAndGetToken("Ankit", "ankit@gmail.com");
+    rahulToken = await registerAndGetToken("Rahul", "rahul@gmail.com");
 
     const created = await request(app)
       .post("/api/tasks")
-      .set("Authorization", `Bearer ${tokenA}`)
-      .send({ title: "User A Task", priority: "High" });
+      .set("Authorization", `Bearer ${ankitToken}`)
+      .send({ title: "Complete backend assignment", priority: "High" });
 
     taskId = created.body._id;
   });
@@ -38,24 +38,24 @@ describe("Tasks API", () => {
     it("creates a task for the authenticated user", async () => {
       const res = await request(app)
         .post("/api/tasks")
-        .set("Authorization", `Bearer ${tokenA}`)
+        .set("Authorization", `Bearer ${ankitToken}`)
         .send({
-          title: "New Task",
-          description: "Test description",
+          title: "Review assignment requirements",
+          description: "Go through the SDE assignment doc once more",
           status: "Pending",
           priority: "Medium",
         });
 
       expect(res.status).toBe(201);
-      expect(res.body.title).toBe("New Task");
+      expect(res.body.title).toBe("Review assignment requirements");
       expect(res.body.user).toBeDefined();
     });
 
     it("rejects missing title", async () => {
       const res = await request(app)
         .post("/api/tasks")
-        .set("Authorization", `Bearer ${tokenA}`)
-        .send({ description: "No title" });
+        .set("Authorization", `Bearer ${ankitToken}`)
+        .send({ description: "Missing title field" });
 
       expect(res.status).toBe(400);
     });
@@ -65,31 +65,31 @@ describe("Tasks API", () => {
     it("returns only the authenticated user's tasks", async () => {
       await request(app)
         .post("/api/tasks")
-        .set("Authorization", `Bearer ${tokenB}`)
-        .send({ title: "User B Task" });
+        .set("Authorization", `Bearer ${rahulToken}`)
+        .send({ title: "Prepare system design notes" });
 
-      const resA = await request(app)
+      const ankitTasks = await request(app)
         .get("/api/tasks")
-        .set("Authorization", `Bearer ${tokenA}`);
+        .set("Authorization", `Bearer ${ankitToken}`);
 
-      const resB = await request(app)
+      const rahulTasks = await request(app)
         .get("/api/tasks")
-        .set("Authorization", `Bearer ${tokenB}`);
+        .set("Authorization", `Bearer ${rahulToken}`);
 
-      expect(resA.body.tasks.some((t) => t.title === "User B Task")).toBe(false);
-      expect(resB.body.tasks).toHaveLength(1);
-      expect(resB.body.tasks[0].title).toBe("User B Task");
+      expect(ankitTasks.body.tasks.some((t) => t.title === "Prepare system design notes")).toBe(false);
+      expect(rahulTasks.body.tasks).toHaveLength(1);
+      expect(rahulTasks.body.tasks[0].title).toBe("Prepare system design notes");
     });
 
     it("filters by status", async () => {
       await request(app)
         .post("/api/tasks")
-        .set("Authorization", `Bearer ${tokenA}`)
-        .send({ title: "Completed Task", status: "Completed" });
+        .set("Authorization", `Bearer ${ankitToken}`)
+        .send({ title: "Submit assignment", status: "Completed" });
 
       const res = await request(app)
         .get("/api/tasks?status=Completed")
-        .set("Authorization", `Bearer ${tokenA}`);
+        .set("Authorization", `Bearer ${ankitToken}`);
 
       expect(res.status).toBe(200);
       expect(res.body.tasks.every((t) => t.status === "Completed")).toBe(true);
@@ -97,8 +97,8 @@ describe("Tasks API", () => {
 
     it("searches by title", async () => {
       const res = await request(app)
-        .get("/api/tasks?search=User A")
-        .set("Authorization", `Bearer ${tokenA}`);
+        .get("/api/tasks?search=assignment")
+        .set("Authorization", `Bearer ${ankitToken}`);
 
       expect(res.status).toBe(200);
       expect(res.body.tasks.length).toBeGreaterThan(0);
@@ -109,7 +109,7 @@ describe("Tasks API", () => {
     it("returns task statistics for the user", async () => {
       const res = await request(app)
         .get("/api/tasks/stats")
-        .set("Authorization", `Bearer ${tokenA}`);
+        .set("Authorization", `Bearer ${ankitToken}`);
 
       expect(res.status).toBe(200);
       expect(res.body).toMatchObject({
@@ -122,27 +122,27 @@ describe("Tasks API", () => {
   });
 
   describe("User isolation", () => {
-    it("prevents User B from reading User A's task", async () => {
+    it("prevents Rahul from reading Ankit's task", async () => {
       const res = await request(app)
         .get(`/api/tasks/${taskId}`)
-        .set("Authorization", `Bearer ${tokenB}`);
+        .set("Authorization", `Bearer ${rahulToken}`);
 
       expect(res.status).toBe(404);
     });
 
-    it("prevents User B from updating User A's task", async () => {
+    it("prevents Rahul from updating Ankit's task", async () => {
       const res = await request(app)
         .put(`/api/tasks/${taskId}`)
-        .set("Authorization", `Bearer ${tokenB}`)
-        .send({ title: "Hacked" });
+        .set("Authorization", `Bearer ${rahulToken}`)
+        .send({ title: "Changed by someone else" });
 
       expect(res.status).toBe(404);
     });
 
-    it("prevents User B from deleting User A's task", async () => {
+    it("prevents Rahul from deleting Ankit's task", async () => {
       const res = await request(app)
         .delete(`/api/tasks/${taskId}`)
-        .set("Authorization", `Bearer ${tokenB}`);
+        .set("Authorization", `Bearer ${rahulToken}`);
 
       expect(res.status).toBe(404);
     });
@@ -152,12 +152,12 @@ describe("Tasks API", () => {
     it("allows partial updates", async () => {
       const res = await request(app)
         .put(`/api/tasks/${taskId}`)
-        .set("Authorization", `Bearer ${tokenA}`)
+        .set("Authorization", `Bearer ${ankitToken}`)
         .send({ status: "In Progress" });
 
       expect(res.status).toBe(200);
       expect(res.body.status).toBe("In Progress");
-      expect(res.body.title).toBe("User A Task");
+      expect(res.body.title).toBe("Complete backend assignment");
     });
   });
 
@@ -165,13 +165,13 @@ describe("Tasks API", () => {
     it("deletes the task", async () => {
       const res = await request(app)
         .delete(`/api/tasks/${taskId}`)
-        .set("Authorization", `Bearer ${tokenA}`);
+        .set("Authorization", `Bearer ${ankitToken}`);
 
       expect(res.status).toBe(200);
 
       const getRes = await request(app)
         .get(`/api/tasks/${taskId}`)
-        .set("Authorization", `Bearer ${tokenA}`);
+        .set("Authorization", `Bearer ${ankitToken}`);
 
       expect(getRes.status).toBe(404);
     });
@@ -179,7 +179,7 @@ describe("Tasks API", () => {
     it("rejects invalid task ID", async () => {
       const res = await request(app)
         .delete("/api/tasks/not-a-valid-id")
-        .set("Authorization", `Bearer ${tokenA}`);
+        .set("Authorization", `Bearer ${ankitToken}`);
 
       expect(res.status).toBe(400);
     });
