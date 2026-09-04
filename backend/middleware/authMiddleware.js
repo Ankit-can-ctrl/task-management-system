@@ -1,7 +1,9 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const AppError = require("../utils/AppError");
+const asyncHandler = require("./asyncHandler");
 
-const protect = async (req, res, next) => {
+const protect = asyncHandler(async (req, res, next) => {
   let token;
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith("Bearer ")) {
@@ -9,26 +11,21 @@ const protect = async (req, res, next) => {
   }
 
   if (!token) {
-    return res
-      .status(401)
-      .json({ message: "Not authorized, no token provided" });
+    throw new AppError("Not authorized, no token provided", 401);
   }
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.id);
     if (!user) {
-      return res
-        .status(401)
-        .json({ message: "Not authorized, user no longer exists" });
+      throw new AppError("Not authorized, user no longer exists", 401);
     }
-    req.user = user; // used downstream to scope tasks to this user
+    req.user = user;
     next();
   } catch (error) {
-    return res
-      .status(401)
-      .json({ message: "Not authorized, token invalid or expired" });
+    if (error instanceof AppError) throw error;
+    throw new AppError("Not authorized, token invalid or expired", 401);
   }
-};
+});
 
 module.exports = { protect };

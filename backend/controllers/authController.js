@@ -1,68 +1,52 @@
 const jwt = require("jsonwebtoken");
-const { validationResult } = require("express-validator");
 const User = require("../models/User");
+const AppError = require("../utils/AppError");
+const asyncHandler = require("../middleware/asyncHandler");
 
 const generateToken = (userId) =>
   jwt.sign({ id: userId }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || "7d",
   });
 
-const registerUser = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty())
-    return res.status(400).json({ errors: errors.array() });
-
+const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body;
-  try {
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res
-        .status(400)
-        .json({ message: "A user with this email already exists" });
-    }
-    const user = await User.create({ name, email, password });
-    res.status(201).json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      token: generateToken(user._id),
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: "Server error during registration",
-      error: error.message,
-    });
+
+  const existingUser = await User.findOne({ email });
+  if (existingUser) {
+    throw new AppError("A user with this email already exists", 400);
   }
-};
 
-const loginUser = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty())
-    return res.status(400).json({ errors: errors.array() });
+  const user = await User.create({ name, email, password });
+  res.status(201).json({
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    token: generateToken(user._id),
+  });
+});
 
+const loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
-  try {
-    const user = await User.findOne({ email }).select("+password");
-    if (!user || !(await user.comparePassword(password))) {
-      return res.status(401).json({ message: "Invalid email or password" });
-    }
-    res.status(200).json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      token: generateToken(user._id),
-    });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Server error during login", error: error.message });
-  }
-};
 
-const getMe = async (req, res) => {
-  res
-    .status(200)
-    .json({ _id: req.user._id, name: req.user.name, email: req.user.email });
-};
+  const user = await User.findOne({ email }).select("+password");
+  if (!user || !(await user.comparePassword(password))) {
+    throw new AppError("Invalid email or password", 401);
+  }
+
+  res.status(200).json({
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    token: generateToken(user._id),
+  });
+});
+
+const getMe = asyncHandler(async (req, res) => {
+  res.status(200).json({
+    _id: req.user._id,
+    name: req.user.name,
+    email: req.user.email,
+  });
+});
 
 module.exports = { registerUser, loginUser, getMe };

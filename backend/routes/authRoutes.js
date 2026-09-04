@@ -6,6 +6,7 @@ const {
   getMe,
 } = require("../controllers/authController");
 const { protect } = require("../middleware/authMiddleware");
+const validate = require("../middleware/validate");
 
 const router = express.Router();
 
@@ -18,6 +19,7 @@ router.post(
       .isLength({ min: 6 })
       .withMessage("Password must be at least 6 characters"),
   ],
+  validate,
   registerUser,
 );
 
@@ -27,6 +29,7 @@ router.post(
     body("email").isEmail().withMessage("Valid email is required"),
     body("password").notEmpty().withMessage("Password is required"),
   ],
+  validate,
   loginUser,
 );
 
